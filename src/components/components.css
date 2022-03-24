@@ -1,0 +1,35 @@
+
+.column {
+    border-bottom: 2px solid #d3d3d3;
+    display: flex;
+    font-weight: bolder;
+    width: 600px;
+    height: 50px; 
+}
+
+.score {
+    border-bottom: 1px solid #dcdcdc;
+    display: flex;
+    width: 600px;
+    height: 50px;
+}
+
+.rank {
+    width: 100px;
+    float: left;
+    text-align: center;
+    padding-top: 12px;
+}
+
+.id {
+    width: 250px;
+    float: left;
+    text-align: center;
+    padding-top: 12px;
+}
+
+.value {
+    width: 250px;
+    text-align: center;
+    padding-top: 12px;
+}

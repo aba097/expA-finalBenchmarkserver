@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>実験A Webシステム高速化スコアサーバ</title>
+  <link rel="stylesheet" href="../css/index.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="../script/index.js"></script>
+</head>
+
+<body>
+  <h1>実験A Webシステム高速化スコアサーバ</h1>
+
+  <div id="topPage">
+
+    <div>
+      <input type="url" name="url" placeholder="http://(rasberrypiのIPアドレス)/progC.php">
+    </div>
+
+    <div>
+      <select name="groupName" size="1">
+        <option value="group1">グループ1</option>
+        <option value="group2">グループ2</option>
+        <option value="group3">グループ3</option>
+        <option value="group4">グループ4</option>
+        <option value="group5">グループ5</option>
+      </select>
+    </div>
+
+    <div>
+      <button class="startBtn" id="startMeasureBtn" name="startMeasure">計測開始</button>
+    </div>
+
+    <p>全体の計測結果は<a href="https://ohkilab.github.io/expA-benchmarkserver/" target="_blank">こちら</a>から確認できます</p>
+    <p class="alarm">※結果の反映には数分の誤差があります</p>
+
+  </div>
+
+  <div id="startedMeasure">
+    <div id="loader">
+      <img src="./gif/loading.gif" width=300px height=300px>
+    </div>
+  </div>
+
+
+  <div id="measureResult">
+    <p class="end">計測結果</p>
+    <p style="font-weight: bold;" id="MeasureTime"></p>
+    <p class="res"></p>
+    <p id="Msg"></p>
+
+    <button class="startBtn" id="restartBtn">計測結果を記録せずトップへ</button>
+  </div>
+
+</body>
+
+</html>

@@ -1,0 +1,9 @@
+version: "3"
+services:
+  app:
+    container_name: expA-benchmark-container
+    build: "./"
+    tty: true #コンテナの永続化
+    ports:
+      - "3000:3000"
+
