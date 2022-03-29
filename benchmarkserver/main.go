@@ -8,6 +8,8 @@ import (
 	"os"
 	"text/template"
 	"time"
+	"encoding/csv"
+	"io"
 	//"reflect"
 	//reflect.TypeOf(t)
 	"benchmarkserver/internal/ab"
@@ -15,6 +17,25 @@ import (
 	"benchmarkserver/internal/score"
 	"github.com/rs/xid"
 )
+
+//group情報を読み込む
+var groupInfo = map[string]string{}
+
+func readGroupInfo(){
+	csvFile, err := os.Open("data/groupInfo.csv")
+	if err != nil {
+		log.Println("<Debug> can't open data/group.csv : ", err)
+	}
+	reader := csv.NewReader(csvFile)
+
+	for {
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		groupInfo[line[0]] = line[1]
+	}
+}
 
 func main() {
 	// webフォルダにアクセスできるようにする
@@ -27,6 +48,10 @@ func main() {
 	http.HandleFunc("/measure", measureHandler)
 	http.HandleFunc("/record", recordHandler)
 
+	//group情報を読み込む
+	readGroupInfo()
+
+
 	log.Println("Listening...")
 	// 3000ポートでサーバーを立ち上げる
 	err := http.ListenAndServe(":3000", nil)
@@ -37,9 +62,16 @@ func main() {
 
 //main画面
 func rootHandler(w http.ResponseWriter, r *http.Request) {
+
+	groups := []string{}
+
+	for groupName, _ := range groupInfo {
+		groups = append(groups, "<option value='" + groupName + "'>" + groupName + "</option>")
+	}
+
 	//index.htmlを表示させる
 	tmpl := template.Must(template.ParseFiles("./web/html/index.html"))
-	err := tmpl.Execute(w, nil)
+	err := tmpl.Execute(w, groups)
 	if err != nil {
 		log.Println("<Debug> can't open ./web/html/index.htm : ", err)
 	}

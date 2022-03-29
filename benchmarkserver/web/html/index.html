@@ -20,11 +20,18 @@
 
     <div>
       <select name="groupName" size="1">
+
+        {{ range . }}
+        {{ . }}
+        {{ end }}
+
+<!--
         <option value="group1">グループ1</option>
         <option value="group2">グループ2</option>
         <option value="group3">グループ3</option>
         <option value="group4">グループ4</option>
         <option value="group5">グループ5</option>
+-->
       </select>
     </div>
 
