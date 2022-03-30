@@ -1,7 +1,3 @@
-var groupName = "";
-var time = "";
-var id = "";
-
 //HTMLが読み込まれたとき
 $(document).ready(function(){
   //計測開始ボタンクリックアクション
@@ -35,24 +31,10 @@ $(document).ready(function(){
 				console.log("measureResult")
 				console.log(measureResultData.Time)
 				console.log(measureResultData.Msg)
-				console.log(measureResultData.IsNewRecord)
-				console.log(measureResultData.Id)
-
-				if(measureResultData.IsNewRecord){
-					//recordBtnActionで使用
-					groupName = $('[name="groupName"] option:selected').val();
-					time = measureResultData.Time;
-					id = measureResultData.Id;
-
-					//buttonタグ作成
-					$('#measureResult').append('<button class="startBtn" id="recordBtn">計測結果を記録する</button>')
-				}
-
 
 				//計測結果を表示する
 				$('#MeasureTime').text('Requests per second：' + measureResultData.Time)
 				$('#Msg').text(measureResultData.Msg)
-
 
 				setTimeout(function(){
 					//画面表示
@@ -63,36 +45,11 @@ $(document).ready(function(){
 		});
 	});
 
-	//記録ボタンクリックアクション
-
-	$(document).on('click', '#recordBtn', function(){
-
-		console.log("recordBtnAction")
-
-		//ajax urlとgroupNameを/measureに送る
-		$.ajax({
-			type: "POST",
-      //送信先URL
-			url: "record",
-			data: {
-        //送信データ
-				"groupName": groupName,
-				"time": time,
-				"id": id,
-			},
-      //受け取り成功時
-			success: function(){
-				console.log("recordResult")
-				alert('記録しました')
-				location.reload();
-			}
-		});
-	});
-
 	//結果画面にあるトップへボタンを押したとき
 	//非表示・表示を切り替える
 	$('#restartBtn').on('click', function(){
-		$('#measureResult').toggle();
-		$('#topPage').toggle();
+		//$('#measureResult').toggle();
+		//$('#topPage').toggle();
+		location.reload();
 	});
 });

@@ -1,7 +1,7 @@
 package ab
 
 import (
-  "io/ioutil"
+//  "io/ioutil"
   "time"
   "strings"
   "log"
@@ -16,6 +16,7 @@ import (
 func Ab(logfile *os.File, id string, url string) (string, string) {
   var measureTimes float64 //計測時間の合計
   measureTimes = 0
+  /*
 
   //複数タグで検索し，計測(test)
   file, _ := ioutil.ReadFile("./data/searchtag.txt")
@@ -61,6 +62,7 @@ func Ab(logfile *os.File, id string, url string) (string, string) {
     }
 
   }
+  */
 
   //文字列にして返す measureTime / タグ数に変更する
   return "", strconv.FormatFloat(measureTimes, 'f', 2, 64)

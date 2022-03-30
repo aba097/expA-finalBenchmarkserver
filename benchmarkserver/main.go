@@ -10,21 +10,28 @@ import (
 	"time"
 	"encoding/csv"
 	"io"
+	"strconv"
 	//"reflect"
 	//reflect.TypeOf(t)
 	"benchmarkserver/internal/ab"
 	"benchmarkserver/internal/record"
-	"benchmarkserver/internal/score"
 	"github.com/rs/xid"
 )
 
+type GroupInfo struct {
+	groupName string
+	Pass  string
+	Num int
+}
+
 //group情報を読み込む
-var groupInfo = map[string]string{}
+var groupInfo = []GroupInfo{}
 
 func readGroupInfo(){
+	groupInfo = []GroupInfo{}
 	csvFile, err := os.Open("data/groupInfo.csv")
 	if err != nil {
-		log.Println("<Debug> can't open data/group.csv : ", err)
+		log.Println("<Debug> can't open data/groupInfo.csv : ", err)
 	}
 	reader := csv.NewReader(csvFile)
 
@@ -33,8 +40,36 @@ func readGroupInfo(){
 		if err == io.EOF {
 			break
 		}
-		groupInfo[line[0]] = line[1]
+		num, err := strconv.Atoi(line[2])
+		if err != nil {
+			log.Println("<Debug> Not the numbers data/groupInfo.csv : ", err)
+		}
+		groupInfo = append(groupInfo, GroupInfo{line[0], line[1], num})
 	}
+}
+
+func writeGroupInfo(groupName string){
+	recordData := ""
+	for _, groupinfo := range groupInfo {
+		if groupinfo.groupName == groupName {
+			groupinfo.Num--
+		}
+		recordData += groupinfo.groupName + "," + groupinfo.Pass + "," + strconv.Itoa(groupinfo.Num) + "\n"
+	}
+
+	log.Println(recordData)
+
+	//ファイル書き込み
+	file, err := os.Create("data/groupInfo.csv")
+	if err != nil{
+		log.Println("<Debug> can't open or create data/groupInfo.csv : ", err)
+	}
+	defer file.Close()
+	_, err = file.WriteString(recordData)
+	if err != nil {
+		log.Println("<Debug> cant' write data/groupInfo.csv : ", err)
+	}
+
 }
 
 func main() {
@@ -46,11 +81,6 @@ func main() {
 	//ルーティング設定 "/"というアクセスがきたら rootHandlerを呼び出す
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/measure", measureHandler)
-	http.HandleFunc("/record", recordHandler)
-
-	//group情報を読み込む
-	readGroupInfo()
-
 
 	log.Println("Listening...")
 	// 3000ポートでサーバーを立ち上げる
@@ -63,10 +93,13 @@ func main() {
 //main画面
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 
+	//group情報を読み込む
+	readGroupInfo()
+
 	groups := []string{}
 
-	for groupName, _ := range groupInfo {
-		groups = append(groups, "<option value='" + groupName + "'>" + groupName + "</option>")
+	for _, groupinfo := range groupInfo {
+		groups = append(groups, "<option value='" + groupinfo.groupName + "'>" + groupinfo.groupName + ", 残り" + strconv.Itoa(groupinfo.Num) + "回" + "</option>")
 	}
 
 	//index.htmlを表示させる
@@ -81,8 +114,6 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 type measureParam struct {
 	Time string
 	Msg  string
-	IsNewRecord bool
-	Id string
 }
 
 //フォームからの入力を処理 index.jsから受け取る
@@ -108,41 +139,39 @@ func measureHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("<Info> request URL: " + url + ", GroupName: " + groupName + ", id: " + guid.String())
 	fmt.Fprintln(logfile, time.Now().Format("2006/01/02 15:04:05")+"<Info> request URL: "+url+", GroupName: "+groupName+", id: "+guid.String())
 
-	ret.IsNewRecord = false
-	ret.Id = guid.String()
 
-	//abコマンドで負荷をかける．計測時間を返す
-	ret.Msg, ret.Time = ab.Ab(logfile, guid.String(), url)
+	//まだ計測回数があるか
+	var canMeasure = true
+	for _, groupinfo := range groupInfo {
+		if groupinfo.groupName == groupName {
+			if groupinfo.Num == 0 {
+				canMeasure = false
+			}
+			break
+		}
+	}
 
-	//これまでの最高値を取り出す
-	if ret.Msg == "" {
-		ret.IsNewRecord, ret.Msg = score.Score(logfile, guid.String(), ret.Time, groupName)
+	if canMeasure {
+		//abコマンドで負荷をかける．計測時間を返す
+		ret.Msg, ret.Time = ab.Ab(logfile, guid.String(), url)
+
+		//正常に計測終了したら記録する
+		if ret.Msg == "" {
+			record.Record(logfile, guid.String(), ret.Time, groupName)
+			ret.Msg = "計測完了"
+
+			//計測回数を減らす
+			writeGroupInfo(groupName)
+		}
+	}else{
+		ret.Time = "0.00"
+		ret.Msg = "計測回数の上限を超えています"
 	}
 
 	// 構造体をJSON文字列化する
 	jsonBytes, _ := json.Marshal(ret)
 	// index.jsに返す
 	fmt.Fprint(w, string(jsonBytes))
-}
-
-//score.csvに記録する
-func recordHandler(w http.ResponseWriter, r *http.Request) {
-
-	//ログファイルを開く
-	logfile := logfileOpen()
-	defer logfile.Close()
-
-	//POSTデータのフォームを解析
-	err := r.ParseForm()
-	if err != nil {
-		log.Println("<Debug> r.ParseForm : ", err)
-	}
-
-	groupName := r.Form["groupName"][0]
-	times := r.Form["time"][0]
-	id := r.Form["id"][0]
-
-	record.Record(logfile, id, times, groupName)
 }
 
 //ログファイルを開く，ログファイルをgithubにpushする

@@ -4,7 +4,6 @@ import(
   "os"
   "encoding/csv"
   "io"
-  "strconv"
   "log"
   "os/exec"
   "fmt"
@@ -14,7 +13,6 @@ import(
 func Record(logfile *os.File, id string, times string, groupName string) {
 
   recordData := "" //書き込みデータ
-  doUpdate := false //記録が更新したかどうか
 
   //data.csvに記録する
   //data.csvを読み込む
@@ -34,14 +32,7 @@ func Record(logfile *os.File, id string, times string, groupName string) {
     recordData += line[0] + ","
     //グループ名を探し，計測時間を比較
     if line[0] == groupName {
-      nowData, _ := strconv.ParseFloat(times, 64)
-      highData, _ := strconv.ParseFloat(line[1], 64)
-      if nowData > highData {
-        recordData += times + "\n"
-        doUpdate = true
-      }else{
-        recordData += line[1] + "\n"
-      }
+      recordData += times + "\n"
     }else{
       recordData += line[1] + "\n"
     }
@@ -59,10 +50,8 @@ func Record(logfile *os.File, id string, times string, groupName string) {
     log.Println("<Debug> cant' write ../public/score.csv : ", err)
   }
 
-  //csvファイルをgithubにpush
-  if doUpdate {
-    csvPush(logfile, id, groupName)
-  }
+  csvPush(logfile, id, groupName)
+
 }
 
 func csvPush(logfile *os.File, id string, groupName string){
