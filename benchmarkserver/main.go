@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,12 +9,14 @@ import (
 	"time"
 	"encoding/csv"
 	"io"
+	"container/list"
 	"strconv"
+	"regexp"
 	//"reflect"
 	//reflect.TypeOf(t)
 	"benchmarkserver/internal/ab"
 	"benchmarkserver/internal/record"
-	"github.com/rs/xid"
+	"golang.org/x/net/websocket"
 )
 
 type GroupInfo struct {
@@ -57,9 +58,7 @@ func writeGroupInfo(groupName string){
 		recordData += groupinfo.groupName + "," + groupinfo.Pass + "," + strconv.Itoa(groupinfo.Num) + "\n"
 	}
 
-	log.Println(recordData)
-
-	//ファイル書き込み
+	//group情報を書き込み
 	file, err := os.Create("data/groupInfo.csv")
 	if err != nil{
 		log.Println("<Debug> can't open or create data/groupInfo.csv : ", err)
@@ -80,7 +79,7 @@ func main() {
 
 	//ルーティング設定 "/"というアクセスがきたら rootHandlerを呼び出す
 	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/measure", measureHandler)
+	http.Handle("/ws", websocket.Handler(measureHandler))
 
 	log.Println("Listening...")
 	// 3000ポートでサーバーを立ち上げる
@@ -96,17 +95,27 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	//group情報を読み込む
 	readGroupInfo()
 
-	groups := []string{}
+	//index.htmlに載せるデータを用意する
+	type indexDataElem struct {
+		Groups []string
+		Que  string
+	}
 
+	var indexData indexDataElem
+	indexData.Que = "<p>" + strconv.Itoa(que.Len()) + "組み待ち</p>"
+
+	//group情報をhtmlに埋め込む
 	for _, groupinfo := range groupInfo {
-		groups = append(groups, "<option value='" + groupinfo.groupName + "'>" + groupinfo.groupName + ", 残り" + strconv.Itoa(groupinfo.Num) + "回" + "</option>")
+		if groupinfo.Num != 0 {
+			indexData.Groups = append(indexData.Groups, "<option value='" + groupinfo.groupName + "'>" + groupinfo.groupName + ", 残り" + strconv.Itoa(groupinfo.Num) + "回" + "</option>")
+		}
 	}
 
 	//index.htmlを表示させる
-	tmpl := template.Must(template.ParseFiles("./web/html/index.html"))
-	err := tmpl.Execute(w, groups)
+	tmpl := template.Must(template.ParseFiles("./web/html/finalindex.html"))
+	err := tmpl.Execute(w, indexData)
 	if err != nil {
-		log.Println("<Debug> can't open ./web/html/index.htm : ", err)
+		log.Println("<Debug> can't open ./web/html/finalindex.html : ", err)
 	}
 }
 
@@ -116,31 +125,84 @@ type measureParam struct {
 	Msg  string
 }
 
-//フォームからの入力を処理 index.jsから受け取る
-func measureHandler(w http.ResponseWriter, r *http.Request) {
+type QueData struct {
+	uuid string
+	groupName string
+	url string
+ 	w *websocket.Conn
+}
+//待ち行列を管理するキュー
+var que = list.New()
+
+func measureHandler(ws *websocket.Conn) {
+	//websocketが接続されると呼び出される，計測する
+
+	defer ws.Close()
 
 	//ログファイルを開く
 	logfile := logfileOpen()
 	defer logfile.Close()
 
-	//index.jsに返すJSONデータ変数
-	var ret measureParam
-	//POSTデータのフォームを解析
-	err := r.ParseForm()
+
+	// jsからhtml-inputの入力を受信する
+	msg := ""
+	err := websocket.Message.Receive(ws, &msg)
 	if err != nil {
-		log.Println("<Debug> r.ParseForm : ", err)
+			log.Println("<Debug> web socket-readinfo", err)
+			return
 	}
 
-	url := r.Form["url"][0]
-	groupName := r.Form["groupName"][0]
+	//msgはuuid,groupName,urlの形式で送られてくるので","で分割する
+	reg := "[,]"
+  	tmp := regexp.MustCompile(reg).Split(msg, -1)
 
-	//idを設定(logを対応づけるため)
-	guid := xid.New()
-	log.Println("<Info> request URL: " + url + ", GroupName: " + groupName + ", id: " + guid.String())
-	fmt.Fprintln(logfile, time.Now().Format("2006/01/02 15:04:05")+"<Info> request URL: "+url+", GroupName: "+groupName+", id: "+guid.String())
+	uuid := tmp[0]
+	groupName := tmp[1]
+	url := tmp[2]
 
+	log.Println("<Info> request URL: " + url + ", GroupName: " + groupName + ", id: " + uuid)
+	fmt.Fprintln(logfile, time.Now().Format("2006/01/02 15:04:05")+"<Info> request URL: "+url+", GroupName: "+groupName+", id: "+uuid)
 
-	//まだ計測回数があるか
+	//現在の待ち数を知らせる
+	websocket.Message.Send(ws, "queNum," + strconv.Itoa(que.Len()))
+
+	//キューに追加
+	que.PushBack(QueData{uuid, groupName, url, ws})
+
+	//キューが空のとき，空でないときは下で呼び出している
+	if que.Front().Value.(QueData).uuid == uuid {
+		err := websocket.Message.Send(ws, "yourturn")
+		if err != nil {
+			log.Println("<Debug> web socket-can't send yourturn", err)
+			return
+		}
+	}
+
+	//websocket通信はReceiveで処理がとまる，Receiveを受け取ると下に処理される
+	err = websocket.Message.Receive(ws, &msg)
+	if err != nil {
+		log.Println("<Debug> web socket-cant't receive start message", err, uuid)
+		return
+	}
+
+	if msg != "start" {
+		return
+	}
+
+	//キューから取り出す
+	quuid := que.Front().Value.(QueData).uuid
+	qgroupName := que.Front().Value.(QueData).groupName
+	qurl := que.Front().Value.(QueData).url
+	qw := que.Front().Value.(QueData).w
+
+	//他のクライアントに待ち行列を通知する
+	queNum := 0
+	for e := que.Front(); e != nil; e = e.Next(){
+		websocket.Message.Send(e.Value.(QueData).w, "queNum," + strconv.Itoa(queNum))
+		queNum++
+	}
+
+	//まだ計測回数があるかcheck
 	var canMeasure = true
 	for _, groupinfo := range groupInfo {
 		if groupinfo.groupName == groupName {
@@ -151,13 +213,16 @@ func measureHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	//index.jsに返すデータ変数
+	var ret measureParam
+
 	if canMeasure {
 		//abコマンドで負荷をかける．計測時間を返す
-		ret.Msg, ret.Time = ab.Ab(logfile, guid.String(), url)
+		ret.Msg, ret.Time = ab.Ab(logfile, quuid, qurl)
 
 		//正常に計測終了したら記録する
 		if ret.Msg == "" {
-			record.Record(logfile, guid.String(), ret.Time, groupName)
+			record.Record(logfile, quuid, ret.Time, qgroupName)
 			ret.Msg = "計測完了"
 
 			//計測回数を減らす
@@ -168,12 +233,41 @@ func measureHandler(w http.ResponseWriter, r *http.Request) {
 		ret.Msg = "計測回数の上限を超えています"
 	}
 
-	// 構造体をJSON文字列化する
-	jsonBytes, _ := json.Marshal(ret)
-	// index.jsに返す
-	fmt.Fprint(w, string(jsonBytes))
-}
 
+	time.Sleep(20 * time.Second)
+
+	err = websocket.Message.Send(qw, "measureResult," + ret.Time + "," + ret.Msg)
+	if err != nil {
+		log.Println("<Debug> web socket-cant't send measureResult", err)
+		return
+	}
+	//キューから削除
+	que.Remove(que.Front())
+
+	//ページ更新や閉じるで消したリクエストを削除
+	for e := que.Front(); e != nil; {
+		log.Println(e.Value.(QueData).uuid)
+		err := websocket.Message.Send(e.Value.(QueData).w, "existCheck")
+		if err != nil {
+			tmp := e
+			e = e.Next()
+		que.Remove(tmp)
+		}else{
+			e = e.Next()
+		}
+	}
+
+	//queの先頭に対して，計測開始指示する
+	if que.Len() >= 1 {
+		err = websocket.Message.Send(que.Front().Value.(QueData).w, "yourturn")
+		if err != nil {
+			log.Println("<Debug> web socket-cant't send yourturn", err)
+			return
+		}
+	}
+	
+}
+	
 //ログファイルを開く，ログファイルをgithubにpushする
 func logfileOpen() *os.File {
 

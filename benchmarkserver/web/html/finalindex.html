@@ -4,9 +4,9 @@
 <head>
   <meta charset="utf-8">
   <title>実験A Webシステム高速化スコアサーバ</title>
-  <link rel="stylesheet" href="../css/index.css">
+  <link rel="stylesheet" href="../css/finalindex.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-  <script src="../script/index.js"></script>
+  <script src="../script/finalindex.js"></script>
 </head>
 
 <body>
@@ -21,7 +21,7 @@
     <div>
       <select name="groupName" size="1">
 
-        {{ range . }}
+        {{ range .Groups }}
         {{ . }}
         {{ end }}
 
@@ -38,7 +38,7 @@
     <div>
       <button class="startBtn" id="startMeasureBtn" name="startMeasure">計測開始</button>
     </div>
-
+    {{ .Que }}
     <p>全体の計測結果は<a href="https://ohkilab.github.io/expA-benchmarkserver/" target="_blank">こちら</a>から確認できます</p>
     <p class="alarm">※結果の反映には数分の誤差があります</p>
 
@@ -48,6 +48,9 @@
     <div id="loader">
       <img src="./gif/loading.gif" width=300px height=300px>
     </div>
+    <p id="queNum"></p>
+    <button class="startBtn" id="breakMeasureBtn">キューから退出</button>
+
   </div>
 
 
