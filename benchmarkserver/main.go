@@ -234,7 +234,7 @@ func measureHandler(ws *websocket.Conn) {
 	}
 
 
-	time.Sleep(20 * time.Second)
+	//time.Sleep(20 * time.Second)
 
 	err = websocket.Message.Send(qw, "measureResult," + ret.Time + "," + ret.Msg)
 	if err != nil {
