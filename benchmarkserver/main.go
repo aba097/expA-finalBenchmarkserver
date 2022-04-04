@@ -213,10 +213,20 @@ func measureHandler(ws *websocket.Conn) {
 		}
 	}
 
+	//dos対策 ipアドレスが学内のnetworkアドレスかで判断する
+	reg = "[/.]"
+  	splitUrl := regexp.MustCompile(reg).Split(qurl, -1)
+	log.Println(splitUrl)
+	isntDosAttack := false
+	//if len(splitUrl) >= 4 && splitUrl[2] == "192" && splitUrl[3] == "168" {
+	if len(splitUrl) >= 2 {
+		isntDosAttack = true
+	}
+
 	//index.jsに返すデータ変数
 	var ret measureParam
 
-	if canMeasure {
+	if canMeasure && isntDosAttack{
 		//abコマンドで負荷をかける．計測時間を返す
 		ret.Msg, ret.Time = ab.Ab(logfile, quuid, qurl)
 
@@ -228,9 +238,12 @@ func measureHandler(ws *websocket.Conn) {
 			//計測回数を減らす
 			writeGroupInfo(groupName)
 		}
-	}else{
+	}else if !canMeasure {
 		ret.Time = "0.00"
 		ret.Msg = "計測回数の上限を超えています"
+	}else if !isntDosAttack {
+		ret.Time = "0.00"
+		ret.Msg = "学外のIPアドレスが指定されています"
 	}
 
 
