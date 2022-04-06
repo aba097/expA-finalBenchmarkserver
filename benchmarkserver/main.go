@@ -152,16 +152,31 @@ func measureHandler(ws *websocket.Conn) {
 			return
 	}
 
-	//msgはuuid,groupName,urlの形式で送られてくるので","で分割する
+	//msgはuuid,groupName,url,passの形式で送られてくるので","で分割する
 	reg := "[,]"
   	tmp := regexp.MustCompile(reg).Split(msg, -1)
 
 	uuid := tmp[0]
 	groupName := tmp[1]
 	url := tmp[2]
+	pass := tmp[3]
 
 	log.Println("<Info> request URL: " + url + ", GroupName: " + groupName + ", id: " + uuid)
 	fmt.Fprintln(logfile, time.Now().Format("2006/01/02 15:04:05")+"<Info> request URL: "+url+", GroupName: "+groupName+", id: "+uuid)
+
+	//password認証
+	for _, groupinfo := range groupInfo {
+		if groupinfo.groupName == groupName {
+			if groupinfo.Pass != pass {
+				//passwordが異なる
+				log.Println("<Info> id: " + uuid + ", Password is incorrect")
+				fmt.Fprintln(logfile, time.Now().Format("2006/01/02 15:04:05") + "<Info> id: " + uuid + ", Password is incorrect")
+				websocket.Message.Send(ws, "missmatch")
+				return
+			}
+			break
+		}
+	}
 
 	//現在の待ち数を知らせる
 	websocket.Message.Send(ws, "queNum," + strconv.Itoa(que.Len()))

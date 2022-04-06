@@ -19,6 +19,14 @@ $(document).ready(function(){
 	socket.onmessage = function (event) {
 		var revMsg = event.data.split(',');
 		console.log(revMsg)
+
+		// passwordが異なる
+		if(revMsg[0] == "missmatch"){
+			console.log("missmatch")
+			alert("パスードが異なります")
+			location.reload();
+		}
+
 		// サーバーからメッセージを受け取る
 		if(revMsg[0] == "yourturn"){
 			console.log("measureStart")
@@ -56,19 +64,15 @@ $(document).ready(function(){
 
   //計測開始ボタンクリックアクション
 	$('#startMeasureBtn').on('click', function(){
-		console.log("startMeasureAction")
-		console.log(uuid)
-		//selectタグの入力
-		console.log($('[name="groupName"] option:selected').val())
-		//inputタグの入力
-		console.log($('input[name="url"]').val())
+		console.log("<startMeasureAction> uuid: " + uuid + "url: " + $('input[name="url"]').val() + ", group: " + $('[name="groupName"] option:selected').val() + ", pass: " + $('input[name="password"]').val())
 
 		//入力フォームを非表示にし，計測中を表示
 		$('#topPage').toggle();
 		$('#startedMeasure').toggle();
 
 		//ベンチマークサーバに入力を送る
-		socket.send(uuid + "," + $('[name="groupName"] option:selected').val() + "," + $('input[name="url"]').val());
+		socket.send(uuid + "," + $('[name="groupName"] option:selected').val() + "," + $('input[name="url"]').val() + "," + $('input[name="password"]').val());
+
 	});
 
 	//結果画面にあるトップへボタンを押したとき
