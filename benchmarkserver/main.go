@@ -75,7 +75,7 @@ func main() {
 	// webフォルダにアクセスできるようにする
 	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("./web/css/"))))
 	http.Handle("/script/", http.StripPrefix("/script/", http.FileServer(http.Dir("./web/script/"))))
-	http.Handle("/gif/", http.StripPrefix("/gif/", http.FileServer(http.Dir("./web/gif/"))))
+	http.Handle("/image/", http.StripPrefix("/image", http.FileServer(http.Dir("./web/image/"))))
 
 	//ルーティング設定 "/"というアクセスがきたら rootHandlerを呼び出す
 	http.HandleFunc("/", rootHandler)

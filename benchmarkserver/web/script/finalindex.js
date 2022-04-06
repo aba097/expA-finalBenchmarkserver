@@ -76,12 +76,15 @@ $(document).ready(function(){
 	});
 
 	//結果画面にあるトップへボタンを押したとき
-	//非表示・表示を切り替える
 	$('#restartBtn').on('click', function(){
-		//$('#measureResult').toggle();
-		//$('#topPage').toggle();
 		location.reload();
 	});
+
+	//トップページにある更新画像を押した時
+	$('#reloadImg').on('click', function(){
+		location.reload();
+	});
+
 });
 
 //キューから退出するボタンを押した時
