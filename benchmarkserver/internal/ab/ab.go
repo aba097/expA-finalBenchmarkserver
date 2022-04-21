@@ -1,7 +1,7 @@
 package ab
 
 import (
-//  "io/ioutil"
+  "io/ioutil"
   "time"
   "strings"
   "log"
@@ -16,7 +16,7 @@ import (
 func Ab(logfile *os.File, id string, url string) (string, string) {
   var measureTimes float64 //計測時間の合計
   measureTimes = 0
-  /*
+  //*
 
   //複数タグで検索し，計測(test)
   file, _ := ioutil.ReadFile("./data/searchtag.txt")
@@ -29,31 +29,35 @@ func Ab(logfile *os.File, id string, url string) (string, string) {
 
     //log.Println("<Info> id: " + id + ", selected tag: " + s)
     //-c -nを変更する
-    out, err := exec.Command("ab", "-c", "1", "-n", "1", "-t", "2", url + "?tag=" + tag).Output()
+    //out, err := exec.Command("ab", "-c", "1", "-n", "1", "-t", "2", url + "?tag=" + tag).Output()
+    out, err := exec.Command("../hey-master/hey", "-c", "1", "-n", "1", "-t", "100", url + "?tag=" + tag).Output()
     if err != nil {
-      log.Println(fmt.Sprintf("<Error> id: " + id + " execCmd(ab -c 1 -n 10 -t 100 " + url + "?tag=" + tag + ")" , err))
-      fmt.Fprintln(logfile, time.Now().Format("2006/01/02 15:04:05") + fmt.Sprintf("<Error> id: " + id + " execCmd(ab -c 1 -n 10 -t 100" + url + "?tag=" + tag + ")" , err))
-      return "URLが不明です", "0.00"
+      log.Println(fmt.Sprintf("<Error> id: " + id + " execCmd(./hey -c 1 -n 10 -t 100 " + url + "?tag=" + tag + ")" , err))
+      fmt.Fprintln(logfile, time.Now().Format("2006/01/02 15:04:05") + fmt.Sprintf("<Error> id: " + id + " execCmd(./hey -c 1 -n 10 -t 100" + url + "?tag=" + tag + ")" , err))
+      return "エラー", "0.00"
     }
-
     execRes := string(out)
     //abコマンドの結果を:と改行で分割する
     reg := "[:\n]"
     splitExecRes := regexp.MustCompile(reg).Split(execRes, -1)
     //分割したものからRequests per secondを探す
     //次にあるのが計測値なので，j+1して指定，空白で分割し，数値のみ取り出す
-    //例：Requests per second:    720.46 [#/sec] (mean)
+    //例：Requests/sec:	2.3470
     for j, ss := range splitExecRes {
-      if ss == "Requests per second" {
-        sss := strings.Split(splitExecRes[j + 1], " ")
-        //log.Println("<Info> id: " + id + ", Requests per second: " + ss[len(ss) - 3])
+      if strings.Contains(ss, "Requests/sec") {
+        sss := strings.Split(splitExecRes[j + 1], "\t")
+        //log.Println("<Info> id: " + id + ", Requests per second: " + sss[len(sss) - 1])
         //float64に変換して加算
-        measureTime, _ := strconv.ParseFloat(sss[len(sss) - 3], 64)
+        measureTime, _ := strconv.ParseFloat(sss[len(sss) - 1], 64)
         fmt.Printf("%s,%.2f\n",tag, measureTime)
         measureTimes += measureTime
-        break
       }
-    }
+      if ss == "Error distribution"{
+        log.Println("<Error> id: " + id + ", " + splitExecRes[j + 2] + ": " + splitExecRes[j + 3])
+
+        return "エラー " + splitExecRes[j + 2] + ": " + splitExecRes[j + 3], "0.00"
+        
+      }
 
     //curlでhtmlを取得し，imgタグ内の.staticflickr.comの数が100個あるか数える
     //htmlが正常か簡易的にチェック
