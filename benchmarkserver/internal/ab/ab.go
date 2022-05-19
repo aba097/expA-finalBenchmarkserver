@@ -58,15 +58,17 @@ func Ab(logfile *os.File, id string, url string) (string, string) {
         return "エラー " + splitExecRes[j + 2] + ": " + splitExecRes[j + 3], "0.00"
         
       }
+    }
 
     //curlでhtmlを取得し，imgタグ内の.staticflickr.comの数が100個あるか数える
     //htmlが正常か簡易的にチェック
     if !Checkhtml(logfile, id, url, tag) {
       return "HTMLファイルが改ざんされている可能性があります", "0.00"
     }
+    
 
   }
-  */
+
 
   //文字列にして返す measureTime / タグ数に変更する
   return "", strconv.FormatFloat(measureTimes, 'f', 2, 64)
