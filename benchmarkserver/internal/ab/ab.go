@@ -64,6 +64,7 @@ func Ab(logfile *os.File, id string, url string) (string, string) {
     if !Checkhtml(logfile, id, url, tag) {
       return "HTMLファイルが改ざんされている可能性があります", "0.00"
     }
+
   }
   //文字列にして返す measureTime / タグ数に変更する
   return "", strconv.FormatFloat(measureTimes, 'f', 2, 64)
