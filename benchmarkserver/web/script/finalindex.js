@@ -40,7 +40,7 @@ $(document).ready(function(){
 			if(revMsg[1] == "0"){
 				$('#queNum').text("計測中")
 			}else{
-				$('#queNum').text("待ち：" + revMsg[1])
+				$('#queNum').html("<span class=\"queue_num\">" + revMsg[1] + "</span> 組 計測中")
 			}
 			
 		}

@@ -15,43 +15,40 @@
   <div id="topPage">
 
     <div>
-      <input type="url" name="url" placeholder="http://(rasberrypiのIPアドレス)/progC.php">
-    </div>
-
-    <div>
-      <select name="groupName" size="1">
-
-        {{ range .Groups }}
-        {{ . }}
-        {{ end }}
-
-<!--
-        <option value="group1">グループ1</option>
-        <option value="group2">グループ2</option>
-        <option value="group3">グループ3</option>
-        <option value="group4">グループ4</option>
-        <option value="group5">グループ5</option>
--->
-      </select>
+      <p>グループ : 
+        <select name="groupName" placeholder="group_id" size="1">
+          {{ range .Groups }}
+          {{ . }}
+          {{ end }}
+        </select>
+      </p>
     </div>
 
     <div>
       <input type="password" name="password"  placeholder="パスワード">
     </div>
 
+    <div class="url_input">
+      <input type="url" name="url" placeholder="http://(rasberrypiのIPアドレス)/progC.php">
+    </div>
+
     <div>
       <button class="startBtn" id="startMeasureBtn" name="startMeasure">計測開始</button>
     </div>
-    {{ .Que }}
-    <button type="button" id="reloadImg"><img src="../image/reload.png" width=50px height=50px></button>
-    <p>全体の計測結果は<a href="https://ohkilab.github.io/expA-benchmarkserver/" target="_blank">こちら</a>から確認できます</p>
+    <div class="queue">
+      <p><span class="queue_num">{{ .Que }}</span> 組 計測中</p>
+    </div>
+
+    <button type="button" class="reloader" id="reloadImg"><img src="../image/reload.png" width=30px height=30px></button>
+
+    <p>全体の計測結果は<a href="http://expa-ranking.s3-website-ap-northeast-1.amazonaws.com/" target="_blank">こちら</a>から確認できます</p>
     <p class="alarm">※結果の反映には数分の誤差があります</p>
 
   </div>
 
   <div id="startedMeasure">
     <div id="loader">
-      <img src="./gif/loading.gif" width=300px height=300px>
+      <img src="../image/loading.gif" width=300px height=300px>
     </div>
     <p id="queNum"></p>
     <button class="startBtn" id="breakMeasureBtn">キューから退出</button>
@@ -65,9 +62,8 @@
     <p class="res"></p>
     <p id="Msg"></p>
 
-    <button class="startBtn" id="restartBtn">トップへ</button>
+    <button class="startBtn" id="restartBtn">計測結果を記録せずトップへ</button>
   </div>
-
 </body>
 
 </html>

@@ -102,12 +102,12 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var indexData indexDataElem
-	indexData.Que = "<p>" + strconv.Itoa(que.Len()) + "組み待ち</p>"
+	indexData.Que = strconv.Itoa(que.Len())
 
 	//group情報をhtmlに埋め込む
 	for _, groupinfo := range groupInfo {
 		if groupinfo.Num != 0 {
-			indexData.Groups = append(indexData.Groups, "<option value='" + groupinfo.groupName + "'>" + groupinfo.groupName + ", 残り" + strconv.Itoa(groupinfo.Num) + "回" + "</option>")
+			indexData.Groups = append(indexData.Groups, "<option value='" + groupinfo.groupName + "'>" + groupinfo.groupName + " 残り" + strconv.Itoa(groupinfo.Num) + "回" + "</option>")
 		}
 	}
 
