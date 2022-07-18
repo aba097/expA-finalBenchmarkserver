@@ -15,6 +15,7 @@ import (
 	//"reflect"
 	//reflect.TypeOf(t)
 	"benchmarkserver/internal/ab"
+	"benchmarkserver/internal/abtest"
 	"benchmarkserver/internal/record"
 	"benchmarkserver/internal/score"
 	"benchmarkserver/internal/uploadaws"
@@ -273,6 +274,20 @@ func measureHandler(ws *websocket.Conn) {
 	}else{
 		//残りの計測回数を送信
 		websocket.Message.Send(qw, "groupNeasureNum," + strconv.Itoa(canMeasure - 1))
+	}
+
+	//abコマンド1度のみ計測を行い正常に計測できているか確認，できてる場合は計測回数を減らす
+	abTestMsg := abtest.AbTest(logfile, quuid, qurl)
+	//正常に計測できなかった
+	if(abTestMsg != ""){
+
+		err = websocket.Message.Send(qw, "measureResult," + "0.00" + "," + abTestMsg + "," + ret.IsNewRecord)
+	
+		log.Println("<Info> id: " + uuid + ", AbTest Error", err)
+		fmt.Fprintln(logfile, time.Now().Format("2006/01/02 15:04:05") + "<Info> id: " + uuid + ", AbTestError")
+
+		queTidy(que)
+		return
 	}
 
 	//abコマンドで負荷をかける．計測時間を返す
